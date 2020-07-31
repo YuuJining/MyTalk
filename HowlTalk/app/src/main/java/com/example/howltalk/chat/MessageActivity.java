@@ -3,13 +3,17 @@ package com.example.howltalk.chat;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.TextView;
 
 import com.example.howltalk.R;
 import com.example.howltalk.model.ChatModel;
@@ -21,6 +25,9 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.remoteconfig.FirebaseRemoteConfig;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class MessageActivity extends AppCompatActivity {
     private FirebaseRemoteConfig firebaseRemoteConfig;
 
@@ -30,6 +37,8 @@ public class MessageActivity extends AppCompatActivity {
 
     private String uid;
     private String chatRoomUid;
+
+    private RecyclerView recyclerView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,6 +57,7 @@ public class MessageActivity extends AppCompatActivity {
         button = findViewById(R.id.messageActivity_button);
         edittext = findViewById(R.id.messageActivity_editText);
 
+        recyclerView = findViewById(R.id.messageActivity_recyclerview);
         button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -57,7 +67,13 @@ public class MessageActivity extends AppCompatActivity {
 
 
                 if(chatRoomUid == null) {
-                    FirebaseDatabase.getInstance().getReference().child("chatrooms").push().setValue(chatModel);
+                    button.setEnabled(false);
+                    FirebaseDatabase.getInstance().getReference().child("chatrooms").push().setValue(chatModel).addOnSuccessListener(new OnSuccessListener<Void>() {
+                        @Override
+                        public void onSuccess(Void aVoid) {
+                            checkChatRoom();
+                        }
+                    });
                 } else {
 
                     ChatModel.Comment comment = new ChatModel.Comment();
@@ -67,9 +83,6 @@ public class MessageActivity extends AppCompatActivity {
                 }
             }
         });
-
-        checkChatRoom();
-
     }
 
     void checkChatRoom() {
@@ -80,6 +93,9 @@ public class MessageActivity extends AppCompatActivity {
                     ChatModel chatModel = item.getValue(ChatModel.class);
                     if(chatModel.users.containsKey(destinationUid)) {
                         chatRoomUid = item.getKey();
+                        button.setEnabled(true);
+                        recyclerView.setLayoutManager(new LinearLayoutManager(MessageActivity.this));
+                        recyclerView.setAdapter(new RecyclerViewAdapter());
                     }
                 }
             }
@@ -89,5 +105,55 @@ public class MessageActivity extends AppCompatActivity {
 
             }
         });
+    }
+    class RecyclerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>{
+
+        List<ChatModel.Comment> comments;
+        public RecyclerViewAdapter() {
+            comments = new ArrayList<>();
+
+            FirebaseDatabase.getInstance().getReference().child("chatrooms").child(chatRoomUid).child("comments").addValueEventListener(new ValueEventListener() {
+                @Override
+                public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                    comments.clear();
+
+                    for(DataSnapshot item : dataSnapshot.getChildren()) {
+                        comments.add(item.getValue(ChatModel.Comment.class));
+                    }
+                    notifyDataSetChanged();
+                }
+
+                @Override
+                public void onCancelled(@NonNull DatabaseError databaseError) {
+
+                }
+            });
+        }
+
+        @NonNull
+        @Override
+        public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_message,parent,false);
+
+            return new MessageViewHolder(view);
+        }
+
+        @Override
+        public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
+            ((MessageViewHolder)holder).textView_message.setText(comments.get(position).message);
+        }
+
+        @Override
+        public int getItemCount() {
+            return comments.size();
+        }
+
+        private class MessageViewHolder extends RecyclerView.ViewHolder {
+            public TextView textView_message;
+            public MessageViewHolder(View view) {
+                super(view);
+                textView_message = view.findViewById(R.id.messageItem_textView_message);
+            }
+        }
     }
 }

@@ -20,6 +20,7 @@ import com.bumptech.glide.request.RequestOptions;
 import com.example.howltalk.R;
 import com.example.howltalk.chat.MessageActivity;
 import com.example.howltalk.model.UserModel;
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.FirebaseDatabase;
@@ -45,12 +46,18 @@ public class PeopleFragment extends Fragment {
 
         public PeopleFragmentRecyclerViewAdapter() {
             userModels = new ArrayList<>();
+            final String myUid = FirebaseAuth.getInstance().getCurrentUser().getUid();
             FirebaseDatabase.getInstance().getReference().child("users").addValueEventListener(new ValueEventListener() {
                 @Override
                 public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                     userModels.clear();
                     for(DataSnapshot snapshot :dataSnapshot.getChildren()) {
-                        userModels.add(snapshot.getValue(UserModel.class));
+
+                        UserModel userModel = snapshot.getValue(UserModel.class);
+                        if(userModel.uid.equals(myUid)) {
+                            continue;
+                        }
+                        userModels.add(userModel);
                     }
                     notifyDataSetChanged();
                 }
