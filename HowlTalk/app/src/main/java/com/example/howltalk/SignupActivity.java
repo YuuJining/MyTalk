@@ -110,7 +110,7 @@ public class SignupActivity extends AppCompatActivity {
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        //super.onActivityResult(requestCode, resultCode, data);
+        super.onActivityResult(requestCode, resultCode, data);
         if(requestCode == PICK_FROM_ALBUM && resultCode == RESULT_OK) {
             profile.setImageURI(data.getData());
             imageUri = data.getData();

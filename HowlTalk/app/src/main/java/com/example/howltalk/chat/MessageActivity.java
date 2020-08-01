@@ -8,6 +8,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -22,16 +23,22 @@ import com.bumptech.glide.request.RequestOptions;
 import com.example.howltalk.R;
 import com.example.howltalk.model.ChatModel;
 import com.example.howltalk.model.UserModel;
+import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ServerValue;
 import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.remoteconfig.FirebaseRemoteConfig;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.TimeZone;
 
 public class MessageActivity extends AppCompatActivity {
     private FirebaseRemoteConfig firebaseRemoteConfig;
@@ -45,19 +52,23 @@ public class MessageActivity extends AppCompatActivity {
 
     private RecyclerView recyclerView;
 
+    private SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy.MM.dd HH:mm");
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_message);
 
+        /* 원격으로 상태바 바꿈*/
         firebaseRemoteConfig = firebaseRemoteConfig.getInstance();
 
         String splash_background = firebaseRemoteConfig.getString(getString(R.string.rc_color));
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             getWindow().setStatusBarColor(Color.parseColor(splash_background));
         }
+        /* -- */
 
-        uid = FirebaseAuth.getInstance().getCurrentUser().getUid(); //채팅을 요구하는 아이디
+        uid = FirebaseAuth.getInstance().getCurrentUser().getUid(); //채팅을 요구하는 아이디 즉 로그인한 아이디
         destinationUid = getIntent().getStringExtra("destinationUid"); //채팅을 당하는 아이디
         button = findViewById(R.id.messageActivity_button);
         edittext = findViewById(R.id.messageActivity_editText);
@@ -84,7 +95,13 @@ public class MessageActivity extends AppCompatActivity {
                     ChatModel.Comment comment = new ChatModel.Comment();
                     comment.uid = uid;
                     comment.message = edittext.getText().toString();
-                    FirebaseDatabase.getInstance().getReference().child("chatrooms").child(chatRoomUid).child("comments").push().setValue(comment);
+                    comment.timestamp = ServerValue.TIMESTAMP;
+                    FirebaseDatabase.getInstance().getReference().child("chatrooms").child(chatRoomUid).child("comments").push().setValue(comment).addOnCompleteListener(new OnCompleteListener<Void>() {
+                        @Override
+                        public void onComplete(@NonNull Task<Void> task) {
+                            edittext.setText("");
+                        }
+                    });
                 }
             }
         });
@@ -142,7 +159,10 @@ public class MessageActivity extends AppCompatActivity {
                     for(DataSnapshot item : dataSnapshot.getChildren()) {
                         comments.add(item.getValue(ChatModel.Comment.class));
                     }
+                    //메세지가 갱신
                     notifyDataSetChanged();
+
+                    recyclerView.scrollToPosition(comments.size()-1);
                 }
 
                 @Override
@@ -164,12 +184,14 @@ public class MessageActivity extends AppCompatActivity {
         public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
             MessageViewHolder messageViewHolder = ((MessageViewHolder)holder);
 
-
+            //내가보낸 메시지
             if(comments.get(position).uid.equals(uid)) {
                 messageViewHolder.textView_message.setText(comments.get(position).message);
                 messageViewHolder.textView_message.setBackgroundResource(R.drawable.rightbubble);
                 messageViewHolder.textView_message.setTextSize(25);
                 messageViewHolder.linearLayout_destination.setVisibility(View.INVISIBLE);
+                messageViewHolder.linearLayout_main.setGravity(Gravity.RIGHT);
+                //상대방이 보낸 메시지
             }else {
                 Glide.with(holder.itemView.getContext())
                         .load(userModel.profileImageUrl)
@@ -180,8 +202,14 @@ public class MessageActivity extends AppCompatActivity {
                 messageViewHolder.textView_message.setBackgroundResource(R.drawable.leftbubble);
                 messageViewHolder.textView_message.setText(comments.get(position).message);
                 messageViewHolder.textView_message.setTextSize(25);
+                messageViewHolder.linearLayout_main.setGravity(Gravity.LEFT);
             }
 
+            long unixTime = (long)comments.get(position).timestamp;
+            Date date = new Date(unixTime);
+            simpleDateFormat.setTimeZone(TimeZone.getTimeZone("Asia/Seoul"));
+            String time = simpleDateFormat.format(date);
+            messageViewHolder.textView_timestamp.setText(time);
 
         }
 
@@ -195,6 +223,8 @@ public class MessageActivity extends AppCompatActivity {
             public TextView textView_name;
             public ImageView imageView_profile;
             public LinearLayout linearLayout_destination;
+            public LinearLayout linearLayout_main;
+            public TextView textView_timestamp;
 
             public MessageViewHolder(View view) {
                 super(view);
@@ -202,6 +232,8 @@ public class MessageActivity extends AppCompatActivity {
                 textView_name = view.findViewById(R.id.messageItem_textview_name);
                 imageView_profile = view.findViewById(R.id.messageItem_imageview_profile);
                 linearLayout_destination = view.findViewById(R.id.messageItem_linearlayout_destination);
+                linearLayout_main = view.findViewById(R.id.messageItem_linearlayout_main);
+                textView_timestamp = view.findViewById(R.id.messageItem_textView_timestamp);
             }
         }
     }
