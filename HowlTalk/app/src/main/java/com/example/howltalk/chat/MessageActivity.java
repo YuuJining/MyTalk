@@ -127,10 +127,14 @@ public class MessageActivity extends AppCompatActivity {
 
         Gson gson = new Gson();
 
+        String userName = FirebaseAuth.getInstance().getCurrentUser().getDisplayName();
+
         NotificationModel notificationModel = new NotificationModel();
         notificationModel.to = destinationuserModel.pushToken;
-        notificationModel.notification.title = "보낸이 아아디";
+        notificationModel.notification.title = userName;
         notificationModel.notification.text = edittext.getText().toString();
+        notificationModel.data.title = userName;
+        notificationModel.data.text = edittext.getText().toString();
 
         RequestBody requestBody = RequestBody.create(MediaType.parse("application/json; charset=utf8"),gson.toJson(notificationModel));
 
