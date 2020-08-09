@@ -11,7 +11,13 @@ import android.view.MenuItem;
 import com.example.howltalk.fragment.ChatFragment;
 import com.example.howltalk.fragment.PeopleFragment;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.iid.FirebaseInstanceId;
 import com.google.firebase.remoteconfig.FirebaseRemoteConfig;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class MainActivity extends AppCompatActivity {
     private FirebaseRemoteConfig firebaseRemoteConfig;
@@ -38,17 +44,23 @@ public class MainActivity extends AppCompatActivity {
                 switch (menuItem.getItemId()) {
                     case R.id.action_people:
                         getFragmentManager().beginTransaction().replace(R.id.mainActivity_framelayout, new PeopleFragment()).commit();
-
                         return true;
                     case R.id.action_chat:
                         getFragmentManager().beginTransaction().replace(R.id.mainActivity_framelayout, new ChatFragment()).commit();
-
                         return true;
-
                 }
 
                 return false;
             }
         });
+        passPushTokenToServr();
+    }
+    void passPushTokenToServr() {
+        String uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        String token = FirebaseInstanceId.getInstance().getToken();
+        Map<String, Object> map = new HashMap<>();
+        map.put("pushToken",token);
+
+        FirebaseDatabase.getInstance().getReference().child("users").child(uid).updateChildren(map);
     }
 }
