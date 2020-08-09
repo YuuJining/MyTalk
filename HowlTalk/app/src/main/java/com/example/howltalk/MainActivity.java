@@ -8,6 +8,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.view.MenuItem;
 
+import com.example.howltalk.fragment.AccountFragment;
 import com.example.howltalk.fragment.ChatFragment;
 import com.example.howltalk.fragment.PeopleFragment;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
@@ -18,6 +19,7 @@ import com.google.firebase.remoteconfig.FirebaseRemoteConfig;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 public class MainActivity extends AppCompatActivity {
     private FirebaseRemoteConfig firebaseRemoteConfig;
@@ -47,6 +49,9 @@ public class MainActivity extends AppCompatActivity {
                         return true;
                     case R.id.action_chat:
                         getFragmentManager().beginTransaction().replace(R.id.mainActivity_framelayout, new ChatFragment()).commit();
+                        return true;
+                    case R.id.action_account:
+                        getFragmentManager().beginTransaction().replace(R.id.mainActivity_framelayout, new AccountFragment()).commit();
                         return true;
                 }
 
