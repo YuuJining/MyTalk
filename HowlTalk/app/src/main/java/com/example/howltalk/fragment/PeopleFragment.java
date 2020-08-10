@@ -95,7 +95,10 @@ public class PeopleFragment extends Fragment {
                     startActivity(intent,activityOptions.toBundle());
                 }
             });
-        }
+            if(userModels.get(position).comment != null) {
+                ((CustomViewHolder) holder).textView_comment.setText(userModels.get(position).comment);
+                }
+            }
 
         @Override
         public int getItemCount() {
@@ -105,10 +108,13 @@ public class PeopleFragment extends Fragment {
         private class CustomViewHolder extends RecyclerView.ViewHolder {
             public ImageView imageView;
             public TextView textView;
+            public TextView textView_comment;
+
             public CustomViewHolder(View view) {
                 super(view);
                 imageView = view.findViewById(R.id.frienditem_imageview);
                 textView = view.findViewById(R.id.frienditem_textview);
+                textView_comment = view.findViewById(R.id.frienditem_textview_comment);
             }
         }
     }
